@@ -3,14 +3,14 @@
 
 
 = Pre-requisite =
-* Linux box with wget
-* Install Ruby (sudo apt-get install ruby)
-* Install Ruby gems (sudo gem install htree)
-* Install pdftk(pdf toolkit) (sudo apt-get install pdftk)
-Above tested on Ubuntu 8.04
+* Linux box with wget ;* 
+* Install Ruby (sudo apt-get install ruby) ;*
+* Install Ruby gems (sudo gem install htree) ;*
+* Install pdftk(pdf toolkit) (sudo apt-get install pdftk) ;*
+* Above tested on Ubuntu 8.04 ;*
 
 
 = Execution =
-* start the terminal
-* change directory to the source code
-* type 'ruby yangtse.rb' and press 'Enter' button
+* start the terminal ;*
+* change directory to the source code ;*
+* type 'ruby yangtse.rb' and press 'Enter' button ;*
