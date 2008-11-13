@@ -22,94 +22,181 @@ require 'rexml/document'
 require 'htree'
 require 'fileutils'
 
-class YangtseEveningPost
 
-# There is no simple way to figure out whether the pdf newspapers has changed name or not, naively I assume a format from a group of file
-# Or we should sense the change.
+## Abstract class - with all subclasses implement the methods.
+class NewspaperInPDF
 
-def self.is_normal_pdf_name name
-	##  when renaming today's newspaper
-	#	normal_name_format = "[0-9]*YZ[A-E]?[0-9]{2}b#{Date.today.strftime("%d")}C"
-	assumed_encoding = "[0-9]*"	
-	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
-	date_encoding = "b[0-9]{2}C" 
-	normal_name_format = "#{assumed_encoding}#{page_idx_fmt}#{date_encoding}"
-	if name =~ /#{normal_name_format}/
+## Define the pdf filename rules, which should be a string of regular expression.
+def self.get_normal_format
+	raise "call abstract method 'self.get_normal_format', please implement it in the subclass!"
+end
+
+## Define how to get the section+page from the filename
+def self.get_section_page filename
+	raise "call abstract method 'self.process_name (filename)', please implement it in the subclass!"
+end
+
+## Found a name for the file if the pdf file is normally named.
+def self.name_it_by_section_page original_name
+	if is_normal_pdf_name original_name
+		sect_page_name = get_section_page(original_name)
+	else 
+		sect_page_name = original_name
+	end
+	return sect_page_name + ".pdf"
+end
+
+## Decide if the filename is the same as the assumed.
+def self.is_normal_pdf_name filename
+	if filename =~ /#{get_normal_format}/
 		return true
 	else
 		return false
 	end
 end
 
-# slice the page name, e.g. B03 - B section 03 page,
-def self.named_by_pages name
-	if is_normal_pdf_name name
-		page_name = name.slice( name.index("YZ") + 2 , 3 )
-	else 
-		page_name = name
-	end
-	return page_name + ".pdf"
+end  # of class NewspaperInPDF
+
+
+class YangtseEveningPost < NewspaperInPDF
+
+def self.get_normal_format
+	unknown_encoding = "[0-9]*"	
+	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
+	assumed_date_encoding = "b[0-9]{2}C" # a little evidence showing the date
+	normal_name_format = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
+	return normal_name_format
 end
-	
+
+def self.get_section_page filename
+	return filename.slice( filename.index("YZ") + 2 , 3 )
+end
+
 end #of class YangtseEveningPost
 
-class WenhuiDaily
 
-# There is no simple way to figure out whether the pdf newspapers has changed name or not, naively I assume a format from a group of file
-# Or we should sense the change.
+class XinminNightly < NewspaperInPDF
 
-def self.is_normal_pdf_name name
-	##  when renaming today's newspaper
-	#	normal_name_format = "XM[0-9]{6}[A-Z][0-9]{3}"
+## normal_name_format = "XM[0-9]{6}[A-Z][0-9]{3}"
+def self.get_normal_format
 	symbol = "XM"
 	date_fmt = "[0-9]{6}" # find a better one
 	section = "[A-Z]"
 	page = "[0-9]{3}"
 	normal_name_format = "#{symbol}#{date_fmt}#{section}#{page}"
-	if name =~ /#{normal_name_format}/
-		return true
-	else
-		return false
-	end
+	return normal_name_format
 end
 
-# slice the page name, e.g. B03 - B section 03 page,
-def self.named_by_section_page name
-	if is_normal_pdf_name name
-		page_name = name.slice( 8 , 4 )
-	else 
-		page_name = name
-	end
-	return page_name + ".pdf"
+def self.get_section_page filename
+	return	filename.slice( 8 , 4 )
 end
-	
-end #of class WenhuiDaily
+
+end #of class XinminNightly
 
 
+class NewspaperToolSet
 
-class WenhuiDailyToolset
+attr_accessor :target_dir, :specific_date
 
-def self.rename_wenhui_pages(path)
-	if File.directory? path 
-		Dir.chdir path
+## Get the ONE webpage which contains all the pdfs links.
+def get_pdfs_webpage
+	raise "call abstract method 'get_pdfs_webpage', please implement it in the subclass!"
+end
 
+## Toolset will generate many file/directory according to different newspapers, symbol is used for identification.
+def get_newspaper_sym
+	raise "call abstract method 'get_newspaper_sym', please implement it in the subclass!"
+end
+
+## different subclasses have different ways of getting names=>new_name mapping.
+def get_name_mapping(pdfs_filename)
+	raise "call abstract method 'get_name_mapping(pdfs_filename)', please implement it in the subclass!"
+end
+
+## different subclasses have different ways of parsing old filename and turning to new one.
+def normalized_name(name)
+	raise "call abstract method 'normalized_name(name)', please implement it in the subclass!"
+end
+
+#TODO: define some rules limiting time range for download, i.e. some newspaper should be download afternoon when it is published.
+
+def download
+	src_url = get_pdfs_webpage  ;	puts src_url
+
+	pdf_urls = []
+	open(src_url) {
+		 |page| page_content = page.read()
+		 doc = HTree(page_content).to_rexml
+		 doc.root.each_element('//a')  do |elem |
+			puts elem
+			a = elem.attribute("href").value
+			if a =~ /.pdf$/
+				pdf_urls << File.join(src_url.slice(0,src_url.rindex('/')),a)
+				pdf_urls.uniq!
+			end
+		end
+	}
+	# p(pdf_urls)
+
+	## should NOT be apparent to the user.
+	urls_file = "#{get_newspaper_sym}#{self.object_id}"	## same file not allowing the multithreading, ensure singularity.
+	f = File.new(urls_file , "w") ; f.puts pdf_urls ; f.close
+	repo = target_dir   ;# puts repo
+	system("wget -i " + urls_file +" -P " + repo)	## download using wget tool
+	File.delete urls_file if File.exists? urls_file	## clean
+end
+
+## 
+def rename
+	if File.directory? target_dir 
+		Dir.chdir target_dir
 		pdfs = Dir.glob("*.pdf")
 	
-		names_map = get_name_mapping(pdfs)
-		#       p names_map
-		rename_by_names_mapping(path, names_map)
-		#	p names_map
+		names_map = get_name_mapping(pdfs)	 ;#       p names_map
+		rename_by_names_mapping(names_map) ;#	  p names_map
 	else
 		# TODO: throw exception for handling
 		
 	end 
-
 end
 
-def self.get_name_mapping pdfs 
+def merge_to_one_pdf
+	Dir.chdir target_dir
+	timestamp = specific_date.year.to_s + "-" + specific_date.month.to_s + "-" + specific_date.strftime('%d')# e.g. 2008-11-08
+
+	system("pdftk *.pdf output " + timestamp.to_s + "AllInOne.pdf")
+end
+
+## Shared methods
+def rename_by_names_mapping(names_map)
+	Dir.chdir target_dir
+	
+	names_map.each_pair do  | src_name , target_name |
+		File.rename(src_name, target_name )
+	end
+end
+
+end # of class NewspaperToolSet
+
+
+class XinminNightlyToolset < NewspaperToolSet
+
+def get_pdfs_webpage
+	# url_folder = "http://pdf.news365.com.cn/xmpdf"  # if we get pdf's url from src_url, no need of this variable
+	yr_mth_day = specific_date.year.to_s + specific_date.month.to_s + specific_date.strftime('%d') # Date.today.strftime('%d') # e.g. 20081109
+	src_url = "http://pdf.news365.com.cn/xmpdf/default.asp?nowDay=#{yr_mth_day}"
+	return src_url
+end
+
+## Toolset will generate many file/directory according to different newspapers, symbol is used for identification.
+def get_newspaper_sym
+	"XM"
+end
+
+def get_name_mapping pdfs_filename 
 	names_mapping = {}
-	pdfs.each do | pdf |
-		if WenhuiDaily.is_normal_pdf_name pdf
+	pdfs_filename.each do | pdf |
+		if XinminNightly.is_normal_pdf_name pdf
 			names_mapping.store(pdf, normalized_name(pdf))	
 		else
 			## process the irregulars after all normals processed
@@ -127,86 +214,30 @@ def self.get_name_mapping pdfs
 end
 
 # get 'section-page' value
-def self.normalized_name(name)
-	WenhuiDaily.named_by_section_page(name)	
+def normalized_name(name)
+	XinminNightly.name_it_by_section_page(name)	
 end
 
-def self.rename_by_names_mapping(path, names_map)
-	Dir.chdir path
-	
-	names_map.each_pair do  | src_name , target_name |
-		File.rename(src_name, target_name )
-	end
+end # of class XinminNightlyToolset
+
+
+class YangtseEveningPostToolset < NewspaperToolSet
+
+def get_pdfs_webpage
+	yr_mth = specific_date.year.to_s + "-" + specific_date.month.to_s # e.g. 2008-11
+	day = specific_date.strftime('%d') 
+	puts yr_mth # ; puts day
+	url = "http://epaper.yangtse.com/yzwb/"+ yr_mth +"/"+ day + "/node_4109.htm" 
+	return url
 end
 
-########
-def self.download_wenhui(target_dir, date=Date.today.to_s)
-	# url_folder = "http://pdf.news365.com.cn/xmpdf"  # if we get pdf's url from src_url, no need of this variable
-	specific_date = Date.strptime(date)
-	#TODO: exception handle
-
-	yr_mth_day = specific_date.year.to_s + specific_date.month.to_s + specific_date.strftime('%d') # Date.today.strftime('%d') # e.g. 20081109
-	
-	src_url = "http://pdf.news365.com.cn/xmpdf/default.asp?nowDay=#{yr_mth_day}"
-	
-	puts src_url
-	pdf_urls = []
-
-	open(src_url) {
-		 |page| page_content = page.read()
-		 doc = HTree(page_content).to_rexml
-		 doc.root.each_element('//a')  do |elem |
-			puts elem
-			a = elem.attribute("href").value
-			if a =~ /.pdf$/
-				pdf_urls << File.join(src_url.slice(0,src_url.rindex('/')),a)
-				pdf_urls.uniq!
-			end
-		end
-	}
-	p(pdf_urls)
-	f = File.new("tt.txt", "w") ; f.puts pdf_urls ; f.close
-
-	# download
-	repo = target_dir
-	# puts repo
-	system("wget -i tt.txt -P "+repo)
-	# TODO: clean the file
-	File.delete "tt.txt" if File.exists? "tt.txt"
+def get_newspaper_sym
+	"YZ"
 end
 
-def self.merge_to_one_pdf(target_dir)
-	Dir.chdir target_dir
-	timestamp = Date.today.year.to_s + "-" + Date.today.month.to_s + "-" + Date.today.strftime('%d')# e.g. 2008-11-08
-
-	system("pdftk *.pdf output " + timestamp.to_s + "AllInOne.pdf")
-end
-
-end # of class WenhuiDailyToolset
-
-class YangtseEveningPostToolset
-
-def self.rename_yangtse_pages(path)
-	if File.directory? path 
-		Dir.chdir path
-
-		pdfs = Dir.glob("*.pdf")
-	
-		names_map = get_name_mapping(pdfs)
-		#       p names_map
-		rename_by_names_mapping(path, names_map)
-		#	p names_map
-	else
-		# TODO: throw exception for handling
-		
-	end 
-end
-
-# To parse and rename the pdf pages of 'Yangtse Evening Post' 
-# in format '<numbers> + YZ + <page> + <date> + C'
-def self.get_name_mapping pdfs 
+def get_name_mapping(pdfs_filename)
 	names_mapping = {}
-	pdfs.each do | pdf |
+	pdfs_filename.each do | pdf |
 		if YangtseEveningPost.is_normal_pdf_name pdf
 			names_mapping.store(pdf, normalized_name(pdf))	
 		else
@@ -224,64 +255,9 @@ def self.get_name_mapping pdfs
 	return names_mapping
 end
 
-def self.normalized_name(name)
-	YangtseEveningPost.named_by_pages(name)	
-end
-
-
-def self.rename_by_names_mapping(path, names_map)
-	Dir.chdir path
-	
-	names_map.each_pair do  | src_name , target_name |
-		File.rename(src_name, target_name )
-	end
-
-end
-
-
-
-#######
-
-# date should be formatted as '09' with two digits.
-def self.download_yangtse(target_dir,date=Date.today)
-	# url_folder = "http://epaper.yangtse.com/images" # if we get pdf's url from src_url, no need of this variable
-	specific_date = Date.strptime(date)
-
-	yr_mth = specific_date.year.to_s + "-" + specific_date.month.to_s # e.g. 2008-11
-	day = specific_date.strftime('%d') 
-
-	url = "http://epaper.yangtse.com/yzwb/"+ yr_mth +"/"+ day + "/node_4109.htm" 
-
-	#retrieve pdfs' URLs for downloading
-	urls = []
-	open(url) {
-	  |page| page_content = page.read()
-	 doc = HTree(page_content).to_rexml
-	 doc.root.each_element('//a')  do |elem |
-		a = elem.attribute("href").value
-		if a =~ /.pdf$/
-			urls << File.join(url.slice(0,url.rindex('/')),a)
-			urls.uniq!
-		end
-	end
-	}
-
-	f = File.new("tt.txt", "w") ; f.puts(urls) ; f.close
-
-	# download
-	repo = target_dir
-	# puts repo
-	system("wget -i tt.txt -P "+repo)
-	# TODO: clean the file
-	File.delete "tt.txt" if File.exists? "tt.txt"
-
-end
-
-def self.merge_to_one_pdf(target_dir)
-	Dir.chdir target_dir
-	timestamp = Date.today.year.to_s + "-" + Date.today.month.to_s + "-" + Date.today.strftime('%d')# e.g. 2008-11-08
-
-	system("pdftk *.pdf output " + timestamp.to_s + "AllInOne.pdf")
+## different subclasses have different ways of parsing old filename and turning to new one.
+def normalized_name(name)
+	YangtseEveningPost.name_it_by_section_page(name)
 end
 
 end # of class YangtseEveningPostToolset
@@ -289,27 +265,27 @@ end # of class YangtseEveningPostToolset
 
 # for test
 if __FILE__ == $0
-	#str = "1226167650156YZA01b09C.pdf"
-	#puts YangtseEveningPost.is_normal_pdf_name str 
-	#puts YangtseEveningPost.named_by_pages str 
-
-	#rename_yangtse_pages("./")
 
 	clock = Time.new
-	if clock.hour > 8
-	## download yangtse
-	specific_date = Date.today.to_s
-	target_dir = File.expand_path(File.join("~", "newspapers", "yangtse", specific_date ))
-	YangtseEveningPostToolset.download_yangtse(target_dir,specific_date )
-	YangtseEveningPostToolset.rename_yangtse_pages(target_dir)
-	YangtseEveningPostToolset.merge_to_one_pdf(target_dir)
-	end
+		todaynp = XinminNightlyToolset.new
+		todaynp.specific_date = Date.today - 1 # ; puts todaynp.specific_date.to_s ; puts "#####"
+		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "wenhui", todaynp.specific_date.to_s))
+		#todaynp.download
+		todaynp.rename
+		todaynp.merge_to_one_pdf
+	#if clock.hour > 8
+		## download yangtse
+		todaynp = YangtseEveningPostToolset.new
+		todaynp.specific_date = Date.today # ; puts todaynp.specific_date.to_s ; puts "#####"
+		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "yangtse", todaynp.specific_date.to_s))
+		#todaynp.download
+		todaynp.rename
+		todaynp.merge_to_one_pdf
+		
+	#end
 	
-	if clock.hour > 16
-	# download wenhui
-	target_dir = File.expand_path(File.join("~", "newspapers", "wenhui", specific_date ))
-	WenhuiDailyToolset.download_wenhui(target_dir, specific_date)
-	WenhuiDailyToolset.rename_wenhui_pages(target_dir)
-	WenhuiDailyToolset.merge_to_one_pdf(target_dir)
-	end
 end
+
+#TODO: dir creation at first run and related exception
+#TODO: download rule according to the publishing time
+#TODO: in NewspaperToolset#download, 
