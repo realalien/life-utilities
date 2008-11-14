@@ -80,7 +80,24 @@ def self.get_normal_format
 end
 
 def self.get_section_page filename
-	return filename.slice( filename.index("YZ") + 2 , 3 )
+
+	unknown_encoding = "[0-9]*"	
+	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
+	assumed_date_encoding = "b[0-9]{2}C" #  little evidence showing the date
+	normal_name_format_ediAB = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
+
+	unknown_encoding = "[0-9]{13}"
+	page_idx_fmt = "C[0-9]{2}"
+	normal_name_format_ediC = "#{unknown_encoding}#{page_idx_fmt}"
+
+	## TODO:Dulplicated code, magic number
+	if filename =~ /#{normal_name_format_ediAB}/
+		return filename.slice( filename.index("YZ") + 2 , 3 )
+	else if filename =~ /#{normal_name_format_ediC}/
+		return filename.slice( filename.index("C"), 3 )
+	else
+		raise "Caught irregular filename"
+	END
 end
 
 end #of class YangtseEveningPost
