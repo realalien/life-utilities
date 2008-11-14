@@ -1,4 +1,4 @@
-# 'Yangtse Evening Post AllinOne Pager' v.1.0 (licensed under GPL)
+# 'Newspaper In PDF'  (licensed under GPL)
 # ##############################################################################
 # maintainer: neilalaer@gmail.com
 #
@@ -22,8 +22,7 @@ require 'rexml/document'
 require 'htree'
 require 'fileutils'
 
-
-## Abstract class - with all subclasses implement the methods.
+## Abstract class - with all subclasses implement the methods. 
 class NewspaperInPDF
 
 ## Define the pdf filename rules, which should be a string of regular expression.
@@ -48,9 +47,12 @@ end
 
 ## Decide if the filename is the same as the assumed.
 def self.is_normal_pdf_name filename
-	if filename =~ /#{get_normal_format}/
-		return true
-	else
+	get_normal_format.each do |format|
+		if filename =~/#{format}/
+			return true
+		else 
+			next
+		end
 		return false
 	end
 end
@@ -61,11 +63,20 @@ end  # of class NewspaperInPDF
 class YangtseEveningPost < NewspaperInPDF
 
 def self.get_normal_format
+	# YangtseEP has two kinds of recognizable pdf filename format for edition AB & C
+	normal_formats = []
 	unknown_encoding = "[0-9]*"	
 	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
-	assumed_date_encoding = "b[0-9]{2}C" # a little evidence showing the date
-	normal_name_format = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
-	return normal_name_format
+	assumed_date_encoding = "b[0-9]{2}C" #  little evidence showing the date
+	normal_name_format_ediAB = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
+
+	unknown_encoding = "[0-9]{13}"
+	page_idx_fmt = "C[0-9]{2}"
+	normal_name_format_ediC = "#{unknown_encoding}#{page_idx_fmt}"
+	
+	normal_formats << normal_name_format_ediAB
+	normal_formats << normal_name_format_ediC	
+	return normal_format
 end
 
 def self.get_section_page filename
@@ -84,7 +95,7 @@ def self.get_normal_format
 	section = "[A-Z]"
 	page = "[0-9]{3}"
 	normal_name_format = "#{symbol}#{date_fmt}#{section}#{page}"
-	return normal_name_format
+	return ["#{normal_name_format}"]
 end
 
 def self.get_section_page filename
@@ -202,7 +213,7 @@ def get_name_mapping pdfs_filename
 			## process the irregulars after all normals processed
 	       		## introduce human intervention
 			puts "Please assign the page ( e.g. A99) to this irregular page, " + pdf
-	       		puts "You may open the pdf file to assure."
+	       		puts "You may open the pdf file to assure the edition and the page number."
 			input = gets #STDIN.getc 
 	    		#TODO: sanity checking the 'input' and avoid the same value in case of renaming to same file name.
 			# input = input.chomp + "-1" if input.chomp.has_value? input.chomp
@@ -265,24 +276,26 @@ end # of class YangtseEveningPostToolset
 
 # for test
 if __FILE__ == $0
-
+	
 	clock = Time.new
+	if clock.hour > 16
 		todaynp = XinminNightlyToolset.new
-		todaynp.specific_date = Date.today - 1 # ; puts todaynp.specific_date.to_s ; puts "#####"
+		todaynp.specific_date = Date.today  # ; puts todaynp.specific_date.to_s ; puts "#####"
 		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "wenhui", todaynp.specific_date.to_s))
-		#todaynp.download
+		todaynp.download
 		todaynp.rename
 		todaynp.merge_to_one_pdf
-	#if clock.hour > 8
+	end
+	if clock.hour > 8 
 		## download yangtse
 		todaynp = YangtseEveningPostToolset.new
 		todaynp.specific_date = Date.today # ; puts todaynp.specific_date.to_s ; puts "#####"
 		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "yangtse", todaynp.specific_date.to_s))
-		#todaynp.download
+		todaynp.download
 		todaynp.rename
 		todaynp.merge_to_one_pdf
 		
-	#end
+	end
 	
 end
 
