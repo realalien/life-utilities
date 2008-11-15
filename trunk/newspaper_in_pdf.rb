@@ -93,11 +93,11 @@ def self.get_section_page filename
 	## TODO:Dulplicated code, magic number
 	if filename =~ /#{normal_name_format_ediAB}/
 		return filename.slice( filename.index("YZ") + 2 , 3 )
-	else if filename =~ /#{normal_name_format_ediC}/
+	elsif filename =~ /#{normal_name_format_ediC}/
 		return filename.slice( filename.index("C"), 3 )
 	else
 		raise "Caught irregular filename"
-	END
+	end
 end
 
 end #of class YangtseEveningPost
