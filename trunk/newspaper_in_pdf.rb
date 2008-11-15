@@ -76,7 +76,7 @@ def self.get_normal_format
 	
 	normal_formats << normal_name_format_ediAB
 	normal_formats << normal_name_format_ediC	
-	return normal_format
+	return normal_formats
 end
 
 def self.get_section_page filename
