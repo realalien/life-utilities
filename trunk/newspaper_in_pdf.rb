@@ -127,8 +127,8 @@ class NewspaperToolSet
 attr_accessor :target_dir, :specific_date
 
 ## Get the ONE webpage which contains all the pdfs links.
-def get_pdfs_webpage
-	raise "call abstract method 'get_pdfs_webpage', please implement it in the subclass!"
+def get_pdfs_webpage_urlstr
+	raise "call abstract method 'get_pdfs_webpage_urlstr', please implement it in the subclass!"
 end
 
 ## Toolset will generate many file/directory according to different newspapers, symbol is used for identification.
@@ -149,7 +149,7 @@ end
 #TODO: define some rules limiting time range for download, i.e. some newspaper should be download afternoon when it is published.
 
 def download
-	src_url = get_pdfs_webpage  ;	puts src_url
+	src_url = get_pdfs_webpage_urlstr  ;	puts src_url
 
 	pdf_urls = []
 	open(src_url) {
@@ -209,7 +209,7 @@ end # of class NewspaperToolSet
 
 class XinminNightlyToolset < NewspaperToolSet
 
-def get_pdfs_webpage
+def get_pdfs_webpage_urlstr
 	# url_folder = "http://pdf.news365.com.cn/xmpdf"  # if we get pdf's url from src_url, no need of this variable
 	yr_mth_day = specific_date.year.to_s + specific_date.month.to_s + specific_date.strftime('%d') # Date.today.strftime('%d') # e.g. 20081109
 	src_url = "http://pdf.news365.com.cn/xmpdf/default.asp?nowDay=#{yr_mth_day}"
@@ -251,7 +251,7 @@ end # of class XinminNightlyToolset
 
 class YangtseEveningPostToolset < NewspaperToolSet
 
-def get_pdfs_webpage
+def get_pdfs_webpage_urlstr
 	yr_mth = specific_date.year.to_s + "-" + specific_date.month.to_s # e.g. 2008-11
 	day = specific_date.strftime('%d') 
 	puts yr_mth # ; puts day
