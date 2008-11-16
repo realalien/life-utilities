@@ -106,7 +106,7 @@ end #of class YangtseEveningPost
 class XinminNightly < NewspaperInPDF
 
 ## normal_name_format = "XM[0-9]{6}[A-Z][0-9]{3}"
-def self.get_normal_format
+def self.get_normal_formats
 	symbol = "XM"
 	date_fmt = "[0-9]{6}" # find a better one
 	section = "[A-Z]"
