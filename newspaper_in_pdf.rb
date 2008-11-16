@@ -22,11 +22,11 @@ require 'rexml/document'
 require 'htree'
 require 'fileutils'
 
-## Abstract class - with all subclasses implement the methods. 
+## Abstract class - with all subclasses implement the abstract methods. 
 class NewspaperInPDF
 
 ## Define the pdf filename rules, which should be a string of regular expression.
-def self.get_normal_format
+def self.get_normal_formats
 	raise "call abstract method 'self.get_normal_format', please implement it in the subclass!"
 end
 
@@ -47,14 +47,14 @@ end
 
 ## Decide if the filename is the same as the assumed.
 def self.is_normal_pdf_name filename
-	get_normal_format.each do |format|
-		if filename =~/#{format}/
+	get_normal_formats.each do |format|
+		if filename =~ /#{format}/
 			return true
 		else 
 			next
 		end
-		return false
 	end
+	return false
 end
 
 end  # of class NewspaperInPDF
@@ -62,7 +62,7 @@ end  # of class NewspaperInPDF
 
 class YangtseEveningPost < NewspaperInPDF
 
-def self.get_normal_format
+def self.get_normal_formats
 	# YangtseEP has two kinds of recognizable pdf filename format for edition AB & C
 	normal_formats = []
 	unknown_encoding = "[0-9]*"	
@@ -96,7 +96,7 @@ def self.get_section_page filename
 	elsif filename =~ /#{normal_name_format_ediC}/
 		return filename.slice( filename.index("C"), 3 )
 	else
-		raise "Caught irregular filename"
+		raise "Caught irregular filename: [" +  filename + "]"
 	end
 end
 
@@ -303,7 +303,7 @@ if __FILE__ == $0
 		todaynp.rename
 		todaynp.merge_to_one_pdf
 	end
-	if clock.hour > 8 
+	if clock.hour > 8 && clock.hour < 16 
 		## download yangtse
 		todaynp = YangtseEveningPostToolset.new
 		todaynp.specific_date = Date.today # ; puts todaynp.specific_date.to_s ; puts "#####"
