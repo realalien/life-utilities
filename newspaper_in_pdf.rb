@@ -299,7 +299,7 @@ if __FILE__ == $0
 		todaynp = XinminNightlyToolset.new
 		todaynp.specific_date = Date.today  # ; puts todaynp.specific_date.to_s ; puts "#####"
 		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "xinmin", todaynp.specific_date.to_s))
-		#todaynp.download
+		todaynp.download
 		todaynp.rename
 		todaynp.merge_to_one_pdf
 	end
