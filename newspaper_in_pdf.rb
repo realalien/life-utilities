@@ -121,47 +121,24 @@ end
 
 end #of class WenhuiDaily
 
-class YangtseEveningPost < NewspaperInPDF
+class XinminNightly < NewspaperInPDF
 
+## normal_name_format = "XM[0-9]{6}[A-Z][0-9]{3}"
 def self.get_normal_formats
-	# YangtseEP has two kinds of recognizable pdf filename format for edition AB & C
-	normal_formats = []
-	unknown_encoding = "[0-9]*"	
-	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
-	assumed_date_encoding = "b[0-9]{2}C" #  little evidence showing the date
-	normal_name_format_ediAB = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
-
-	unknown_encoding = "[0-9]{13}"
-	page_idx_fmt = "C[0-9]{2}"
-	normal_name_format_ediC = "#{unknown_encoding}#{page_idx_fmt}"
-	
-	normal_formats << normal_name_format_ediAB
-	normal_formats << normal_name_format_ediC	
-	return normal_formats
+        symbol = "XM"
+        date_fmt = "[0-9]{6}" # find a better one
+        section = "[A-Z]"
+        page = "[0-9]{3}"
+        normal_name_format = "#{symbol}#{date_fmt}#{section}#{page}"
+        return ["#{normal_name_format}"]
 end
 
 def self.get_section_page filename
-
-	unknown_encoding = "[0-9]*"	
-	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
-	assumed_date_encoding = "b[0-9]{2}C" #  little evidence showing the date
-	normal_name_format_ediAB = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
-
-	unknown_encoding = "[0-9]{13}"
-	page_idx_fmt = "C[0-9]{2}"
-	normal_name_format_ediC = "#{unknown_encoding}#{page_idx_fmt}"
-
-	## TODO:Dulplicated code, magic number
-	if filename =~ /#{normal_name_format_ediAB}/
-		return filename.slice( filename.index("YZ") + 2 , 3 )
-	elsif filename =~ /#{normal_name_format_ediC}/
-		return filename.slice( filename.index("C"), 3 )
-	else
-		raise "Caught irregular filename: [" +  filename + "]"
-	end
+        return  filename.slice( 8 , 4 )
 end
 
-end #of class WenhuiDaily
+end #of class XinminNightly
+
 
 
 class NewspaperToolSet
@@ -396,9 +373,6 @@ if __FILE__ == $0
 		todaynp.rename
 		todaynp.merge_to_one_pdf
 		
-	end
-	
-	if clock.hour >= 18 
 		todaynp = WenhuiDailyToolset.new
 		todaynp.specific_date = Date.today  # ; puts todaynp.specific_date.to_s ; puts "#####"
 		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "wenhui", todaynp.specific_date.to_s))
