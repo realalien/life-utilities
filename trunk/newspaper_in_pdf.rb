@@ -1,7 +1,42 @@
-# 'Newspaper In PDF'  (licensed under GPL)
-# ##############################################################################
-# maintainer: neilalaer@gmail.com
+#!/usr/bin/env ruby 
 #
+## == Synopsis 
+##   A tool for downloading specific newspapers and merge into one file. 
+##
+## == Examples
+##   ruby newspaper_in_pdf.rb -1 whb	
+## 					#day_offset => -1, newspaper => 'whb'
+##   ruby newspaper_in_pdf.rb xm	
+##					# day_offset => 0, newspaper => 'xm'
+##   ruby newspaper_in_pdf.rb xm whb    
+##					# day_offset => 0, newspaper => ['xm','whb'] 
+##   ruby newspaper_in_pdf.rb 		
+##					# day_offset => 0, newspaper => :all
+##
+##   Other examples:
+##     ruby newspaper_in_pdf.rb -q   
+##					# day_offset => 0, newspaper => :all 
+##     ruby --verbose newspaper_in_pdf.rb 
+##
+## == Usage 
+##   ruby newspaper_in_pdf.rb [options] 
+##   For help use: ruby newspaper_in_pdf.rb -h
+##
+## == Options
+##   -h, --help          Displays help message
+##   -v, --version       Display the version, then exit
+##   -q, --quiet         Output as little as possible, overrides verbose
+##   -V, --verbose       Verbose output
+##   TO DO - add additional options
+##
+## == Author
+##   Realalien (realalienATgmail.com) 
+##
+## == Copyright
+##   Licensed under the GPLv3 License:
+##   http://www.opensource.org/licenses/mit-license.php
+
+# ##############################################################################
 # INSTALL GUIDE (for Linux only)
 #	* ruby 
 #	* gem install htree
@@ -21,6 +56,10 @@ require 'open-uri'
 require 'rexml/document'
 require 'htree'
 require 'fileutils'
+
+require 'optparse' 
+require 'rdoc/usage'
+require 'ostruct'
 
 ## Abstract class - with all subclasses implement the abstract methods. 
 class NewspaperInPDF
@@ -168,14 +207,15 @@ end
 #TODO: define some rules limiting time range for download, i.e. some newspaper should be download afternoon when it is published.
 
 def download
-	src_url = get_pdfs_webpage_urlstr  ;	puts src_url
+	#TODO: add time frame for downloading at a specific time
+	src_url = get_pdfs_webpage_urlstr  ;	# puts src_url
 
 	pdf_urls = []
 	open(src_url) {
 		 |page| page_content = page.read()
 		 doc = HTree(page_content).to_rexml
 		 doc.root.each_element('//a')  do |elem |
-			puts elem
+			# puts elem
 			a = elem.attribute("href").value
 			if a =~ /.pdf$/
 				pdf_urls << File.join(src_url.slice(0,src_url.rindex('/')),a)
@@ -189,7 +229,7 @@ def download
 	urls_file = "#{get_newspaper_sym}#{self.object_id}"	## same file not allowing the multithreading, ensure singularity.
 	f = File.new(urls_file , "w") ; f.puts pdf_urls ; f.close
 	repo = target_dir   ;# puts repo
-	system("wget -i " + urls_file +" -P " + repo)	## download using wget tool
+	system("wget -nv -i " + urls_file +" -P " + repo)	## download using wget tool
 	File.delete urls_file if File.exists? urls_file	## clean
 end
 
@@ -350,39 +390,165 @@ end
 
 end # of class WenhuiDailyToolset
 
-# for test
-if __FILE__ == $0
-	
-	clock = Time.new
-	if clock.hour >= 16 && clock.hour < 18
-		todaynp = XinminNightlyToolset.new
-		todaynp.specific_date = Date.today  # ; puts todaynp.specific_date.to_s ; puts "#####"
-		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "xinmin", todaynp.specific_date.to_s))
-		todaynp.download
-		todaynp.rename
-		todaynp.merge_to_one_pdf
-		
-	end
 
-	if clock.hour > 8 && clock.hour < 16 
-		## download yangtse
-		todaynp = YangtseEveningPostToolset.new
-		todaynp.specific_date = Date.today # ; puts todaynp.specific_date.to_s ; puts "#####"
-		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "yangtse", todaynp.specific_date.to_s))
-		todaynp.download
-		todaynp.rename
-		todaynp.merge_to_one_pdf
-		
-		todaynp = WenhuiDailyToolset.new
-		todaynp.specific_date = Date.today  # ; puts todaynp.specific_date.to_s ; puts "#####"
-		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", "wenhui", todaynp.specific_date.to_s))
+
+## Command line application wrapper
+## source: http://blog.infinitered.com/entries/show/5
+## source: http://www.ruby-doc.org/docs/ProgrammingRuby/html/rubyworld.html
+## source: http://www.ruby-doc.org/stdlib/libdoc/optparse/rdoc/index.html
+class App
+  VERSION = '1.0.0'
+  
+  attr_reader :options
+
+  def initialize(arguments, stdin)
+    @arguments = arguments
+    @stdin = stdin
+    
+    # Set defaults
+    @options = OpenStruct.new
+    @options.verbose = true  #TODO: once stable, change to false
+    @options.quiet = false
+    @options.day_offset = 0
+    @options.newspapers = []
+    # TODO - add additional defaults
+  end
+
+  # Parse options, check arguments, then process the command
+  def run
+        # puts "parsed_options?  >>> #{parsed_options?}"
+	# puts "arguments_valid?   >>> #{arguments_valid?}"
+    if parsed_options? && arguments_valid? 
+      
+      puts "Start at #{DateTime.now}\n\n" if @options.verbose
+      
+      process_arguments   
+
+      output_options if @options.verbose # [Optional]
+
+      process_command
+      
+      puts "\nFinished at #{DateTime.now}" if @options.verbose
+      
+    else
+      output_usage
+    end
+      
+  end
+  
+  protected
+  
+    def parsed_options?
+      
+      # Specify options
+      opts = OptionParser.new do |opts |
+	      opts.banner = "Usage: ruby newspaper_in_pdf.rb [options]"
+	      opts.on('-v', '--version')    { output_version ; exit 0 }
+	      opts.on('-h', '--help')       { output_help }
+	      opts.on('-V', '--verbose')    { @options.verbose = true } 
+	      opts.on('-q', '--quiet')      { @options.quiet = true }
+
+	      opts.on('-l', '--list AA,BB,CC', Array,  'The list of to-be-download newspapers' )  do | list | 
+													@options.newspapers = list
+												  end
+	      opts.on('-d N', '--day-offset N', Integer,  'Determine the specific date by offseting' )  do | n |
+												    @options.day_offset = n
+											      end
+	      # TODO - add additional options
+      end
+            
+      opts.parse!(@arguments) rescue return false
+      process_options
+      true      
+    end
+
+    # Performs post-parse processing on options
+    def process_options
+
+
+      @options.verbose = false if @options.quiet
+    end
+    
+    def output_options
+      puts "Options:\n"
+      
+      @options.marshal_dump.each do |name, val|        
+        puts "  #{name} = #{val}"
+      end
+    end
+
+    # True if required arguments were provided
+    def arguments_valid?
+      # TODO - implement your real logic here
+      true # if @arguments.length == 1 
+    end
+    
+    # Setup the arguments  #TODO: what's the difference between process_options()
+    def process_arguments
+      # clean unsupport symbols, e.g. JieFang;
+      # or error argument due to option typo, e.g. '-list' will put  'ist' into the array in this src.
+      @support_newspapers  = Array.new  #TODO: move to elsewhere
+	@support_newspapers << :XM
+	@support_newspapers << :WHB
+	@support_newspapers << :YZ
+	# ATTENTION: command line input is an array of string, to be consistent, internally I use only symbol when using this symbol
+       @options.newspapers = @options.newspapers.collect { | item | item.to_sym } & @support_newspapers
+
+      if @options.newspapers.size == 0
+	@support_newspapers.each do | sym |
+		@options.newspapers << sym
+	end 
+      end
+    end
+    
+    def output_help
+      output_version
+      #RDoc::usage() #exits app
+    end
+    
+    def output_usage
+      #RDoc::usage('Usage') # gets usage from comments above
+    end
+    
+    def output_version
+      puts "#{File.basename(__FILE__)} version #{VERSION}"
+    end
+    
+    def process_command
+	spec_day =  Date.today  + @options.day_offset
+	clock = Time.new
+
+	# TODO - do whatever this app does, e.g. module
+	sym_to_toolset_map = { :XM => "XinminNightlyToolset" , :WHB => "WenhuiDailyToolset", :YZ => "YangtseEveningPostToolset" }
+	sym_to_folder_map = { :XM => "xinmin" , :WHB => "wenhui", :YZ => "yangtse" }
+
+	@options.newspapers.each do | sym |
+		klass = sym_to_toolset_map.fetch(sym)
+		todaynp = inst = Kernel.const_get(klass).new
+		todaynp.specific_date = spec_day
+		#puts "#{todaynp.specific_date.to_s}" ;	#raise "look up the date"
+		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", sym_to_folder_map.fetch(sym), todaynp.specific_date.to_s))
 		todaynp.download
 		todaynp.rename
 		todaynp.merge_to_one_pdf
 	end
+	
+      #process_standard_input # [Optional]
+    end
+
+    # not in use
+    def process_standard_input
+      input = @stdin.read      
+    end
 end
 
-#TODO: clock facility and shell script to automated download
-#TODO: dir creation at first run and related exception
-#TODO: download rule according to the publishing time
-#TODO: in NewspaperToolset#download, 
+
+# Create and run the application
+app = App.new(ARGV, STDIN)
+app.run
+
+#TODO: interruption handle, e.g. no other process if stop download
+#TODO: Suppress the STDOUT of system(), but with downloading info
+#TODO: Avoid re-download
+#TODO: clock facility and shell script to automated download,  according to the publishing time
+
