@@ -106,7 +106,7 @@ def self.get_normal_formats
 	normal_formats = []
 	unknown_encoding = "[0-9]*"	
 	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
-	assumed_date_encoding = "b[0-9]{2}C" #  little evidence showing the date
+	assumed_date_encoding = "[b|c|B|C][0-9]{2}[c|C]" #  little evidence showing the date
 	normal_name_format_ediAB = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
 
 	unknown_encoding = "[0-9]{13}"
