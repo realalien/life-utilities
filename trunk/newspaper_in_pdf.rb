@@ -122,7 +122,7 @@ def self.get_section_page filename
 
 	unknown_encoding = "[0-9]*"	
 	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
-	assumed_date_encoding = "b[0-9]{2}C" #  little evidence showing the date
+	assumed_date_encoding = "[b|B|C|c][0-9]{2}[C|c]" #  little evidence showing the date
 	normal_name_format_ediAB = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
 
 	unknown_encoding = "[0-9]{13}"
