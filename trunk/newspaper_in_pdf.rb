@@ -313,7 +313,7 @@ class YangtseEveningPostToolset < NewspaperToolSet
 def get_pdfs_webpage_urlstr
 	yr_mth = specific_date.year.to_s + "-" + specific_date.month.to_s # e.g. 2008-11
 	day = specific_date.strftime('%d') 
-	puts yr_mth # ; puts day
+	#puts yr_mth # ; puts day
 	url = "http://epaper.yangtse.com/yzwb/"+ yr_mth +"/"+ day + "/node_4109.htm" 
 	return url
 end
@@ -547,6 +547,7 @@ end
 app = App.new(ARGV, STDIN)
 app.run
 
+#TODO: more user-friendly
 #TODO: interruption handle, e.g. no other process if stop download
 #TODO: Suppress the STDOUT of system(), but with downloading info
 #TODO: Avoid re-download
