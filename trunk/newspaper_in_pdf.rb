@@ -286,6 +286,11 @@ def get_name_mapping pdfs_filename
 		if XinminNightly.is_normal_pdf_name pdf
 			names_mapping.store(pdf, normalized_name(pdf))	
 		else
+			## write to a single file
+			file   = File.open("~/newspapers/irregular.log", File::WRONLY|File::APPEND|File::CREAT) 
+			file.puts "#{Time.now.strftime('%m/%d/%Y')}\t#{get_newspaper_sym}\t#{pdf}"
+
+			file.close	
 			## process the irregulars after all normals processed
 	       		## introduce human intervention
 			puts "Please assign the page ( e.g. A99) to this irregular page, " + pdf
@@ -328,6 +333,8 @@ def get_name_mapping(pdfs_filename)
 		if YangtseEveningPost.is_normal_pdf_name pdf
 			names_mapping.store(pdf, normalized_name(pdf))	
 		else
+			 ## write to a single file
+			
 			## process the irregulars after all normals processed
 	       		## introduce human intervention
 			puts "Please assign the page ( e.g. A99) to this irregular page, " + pdf
@@ -335,6 +342,9 @@ def get_name_mapping(pdfs_filename)
 			input = gets #STDIN.getc 
 	    		#TODO: sanity checking the 'input' and avoid the same value in case of renaming to same file name.
 			# input = input.chomp + "-1" if input.chomp.has_value? input.chomp
+			file   = File.open(File.expand_path("~/newspapers/irregular.log"), File::WRONLY|File::APPEND|File::CREAT)
+			 file.puts "#{Time.now.strftime('%m/%d/%Y')}\t#{get_newspaper_sym}\t#{pdf}=>#{input.chomp.to_s}.pdf\tSUPPOSE FORMAT:#{YangtseEveningPost.get_normal_formats}"
+			file.close
 	                names_mapping.store(pdf, input.chomp.to_s + ".pdf")
 		end
 	end
@@ -528,7 +538,7 @@ class App
 		todaynp.specific_date = spec_day
 		#puts "#{todaynp.specific_date.to_s}" ;	#raise "look up the date"
 		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", sym_to_folder_map.fetch(sym), todaynp.specific_date.to_s))
-		todaynp.download
+		#todaynp.download
 		todaynp.rename
 		todaynp.merge_to_one_pdf
 	end
@@ -547,9 +557,11 @@ end
 app = App.new(ARGV, STDIN)
 app.run
 
+#TODO: log the irregular pages by writing to a file, for later analysis.  need revising.
 #TODO: more user-friendly
 #TODO: interruption handle, e.g. no other process if stop download
 #TODO: Suppress the STDOUT of system(), but with downloading info
 #TODO: Avoid re-download
 #TODO: clock facility and shell script to automated download,  according to the publishing time
+
 
