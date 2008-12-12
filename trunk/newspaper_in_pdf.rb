@@ -364,7 +364,8 @@ end # of class YangtseEveningPostToolset
 class WenhuiDailyToolset < NewspaperToolSet
 
 def get_pdfs_webpage_urlstr
-	src_url = "http://pdf.news365.com.cn/whpdf/default.asp"
+	src_url = "http://wenhui.news365.com.cn/whb/pdf/default.asp"
+	#src_url = "http://pdf.news365.com.cn/whpdf/default.asp"
 	return src_url
 end
 
@@ -538,7 +539,7 @@ class App
 		todaynp.specific_date = spec_day
 		#puts "#{todaynp.specific_date.to_s}" ;	#raise "look up the date"
 		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", sym_to_folder_map.fetch(sym), todaynp.specific_date.to_s))
-		#todaynp.download
+		todaynp.download
 		todaynp.rename
 		todaynp.merge_to_one_pdf
 	end
