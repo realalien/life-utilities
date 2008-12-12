@@ -270,8 +270,9 @@ class XinminNightlyToolset < NewspaperToolSet
 
 def get_pdfs_webpage_urlstr
 	# url_folder = "http://pdf.news365.com.cn/xmpdf"  # if we get pdf's url from src_url, no need of this variable
-	yr_mth_day = specific_date.year.to_s + specific_date.month.to_s + specific_date.strftime('%d') # Date.today.strftime('%d') # e.g. 20081109
-	src_url = "http://pdf.news365.com.cn/xmpdf/default.asp?nowDay=#{yr_mth_day}"
+	#yr_mth_day = specific_date.year.to_s + specific_date.month.to_s + specific_date.strftime('%d') # Date.today.strftime('%d') # e.g. 20081109
+	#src_url = "http://pdf.news365.com.cn/xmpdf/default.asp?nowDay=#{yr_mth_day}"
+	src_url="http://xinmin.news365.com.cn/pdf/default.asp"
 	return src_url
 end
 
