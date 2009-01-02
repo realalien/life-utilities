@@ -106,15 +106,21 @@ def self.get_normal_formats
 	normal_formats = []
 	unknown_encoding = "[0-9]*"	
 	page_idx_fmt = "YZ[A-E]?[0-9]{2}" 	
-	assumed_date_encoding = "[b|c|B|C][0-9]{2}[c|C]" #  little evidence showing the date
+	assumed_date_encoding = "[b|c|B|C|][0-9]{2}[c|C]" #  little evidence showing the date
 	normal_name_format_ediAB = "#{unknown_encoding}#{page_idx_fmt}#{assumed_date_encoding}"
 
 	unknown_encoding = "[0-9]{13}"
 	page_idx_fmt = "C[0-9]{2}"
 	normal_name_format_ediC = "#{unknown_encoding}#{page_idx_fmt}"
-	
+		
+	unknown_encoding = "[0-9]{13}"
+        page_idx_fmt = "YZ[A-E]?[0-9]{2}"
+	 unknown_encoding = "[0-9]{3}[C|c]"
+	normal_name_format_edi2009 = "#{unknown_encoding}#{page_idx_fmt}#{unknown_encoding}"
+
 	normal_formats << normal_name_format_ediAB
 	normal_formats << normal_name_format_ediC	
+	normal_formats << normal_name_format_edi2009
 	return normal_formats
 end
 
@@ -129,11 +135,19 @@ def self.get_section_page filename
 	page_idx_fmt = "C[0-9]{2}"
 	normal_name_format_ediC = "#{unknown_encoding}#{page_idx_fmt}"
 
+	 unknown_encoding = "[0-9]{13}"
+        page_idx_fmt = "YZ[A-E]?[0-9]{2}"
+         unknown_encoding = "[0-9]{3}[C|c]"
+        normal_name_format_edi2009 = "#{unknown_encoding}#{page_idx_fmt}#{unknown_encoding}"
+
+
 	## TODO:Dulplicated code, magic number
 	if filename =~ /#{normal_name_format_ediAB}/
 		return filename.slice( filename.index("YZ") + 2 , 3 )
 	elsif filename =~ /#{normal_name_format_ediC}/
 		return filename.slice( filename.index("C"), 3 )
+	elsif filename =~ /#{normal_name_format_edi2009}/
+		return filename.slice( filename.index("YZ") + 2 , 3 )
 	else
 		raise "Caught irregular filename: [" +  filename + "]"
 	end
@@ -211,6 +225,7 @@ def download
 	src_url = get_pdfs_webpage_urlstr  ;	# puts src_url
 
 	pdf_urls = []
+     begin
 	open(src_url) {
 		 |page| page_content = page.read()
 		 doc = HTree(page_content).to_rexml
@@ -224,6 +239,10 @@ def download
 		end
 	}
 	# p(pdf_urls)
+     rescue
+	puts "#{src_url} failed to open!"	
+	raise "please check URL #{src_url}"	
+     end
 
 	## should NOT be apparent to the user.
 	urls_file = "#{get_newspaper_sym}#{self.object_id}"	## same file not allowing the multithreading, ensure singularity.
@@ -284,6 +303,7 @@ end
 def get_name_mapping pdfs_filename 
 	names_mapping = {}
 	pdfs_filename.each do | pdf |
+	    begin
 		if XinminNightly.is_normal_pdf_name pdf
 			names_mapping.store(pdf, normalized_name(pdf))	
 		else
@@ -301,6 +321,9 @@ def get_name_mapping pdfs_filename
 			# input = input.chomp + "-1" if input.chomp.has_value? input.chomp
 	                names_mapping.store(pdf, input.chomp.to_s + ".pdf")
 		end
+	    rescue
+		next
+	    end
 	end
 	
 	return names_mapping
@@ -317,7 +340,7 @@ end # of class XinminNightlyToolset
 class YangtseEveningPostToolset < NewspaperToolSet
 
 def get_pdfs_webpage_urlstr
-	yr_mth = specific_date.year.to_s + "-" + specific_date.month.to_s # e.g. 2008-11
+	yr_mth = specific_date.year.to_s + "-" + specific_date.strftime("%m") # e.g. 2008-11
 	day = specific_date.strftime('%d') 
 	#puts yr_mth # ; puts day
 	url = "http://epaper.yangtse.com/yzwb/"+ yr_mth +"/"+ day + "/node_4109.htm" 
