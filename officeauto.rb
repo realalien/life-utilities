@@ -11,5 +11,17 @@
 #
 
 
+def work_at_office
+	# run programs at the startup # Win64, Vista
+	progs = { 
+		:deskzilla => 'C:\Program Files (x86)\Deskzilla\bin\deskzilla.exe',
+        :vitualDimension => 'C:\Program Files (x86)\Virtual Dimension\VirtualDimension.exe', 
+	    :outlook => 'C:\Program Files (x86)\Microsoft Office\Office12\OUTLOOK.EXE' }
+
+	progs.values.each { | prog | puts prog+ " start to run." ;  system(prog) } 
+end
 
 
+if __FILE__ == $0
+	work_at_office()
+end
