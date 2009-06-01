@@ -291,7 +291,8 @@ def get_pdfs_webpage_urlstr
 	# url_folder = "http://pdf.news365.com.cn/xmpdf"  # if we get pdf's url from src_url, no need of this variable
 	#yr_mth_day = specific_date.year.to_s + specific_date.month.to_s + specific_date.strftime('%d') # Date.today.strftime('%d') # e.g. 20081109
 	#src_url = "http://pdf.news365.com.cn/xmpdf/default.asp?nowDay=#{yr_mth_day}"
-	src_url="http://xinmin.news365.com.cn/pdf/default.asp"
+	# src_url="http://xinmin.news365.com.cn/pdf/default.asp"
+	src_url= "http://pdf.news365.com.cn/xmpdf/default.asp"
 	return src_url
 end
 
@@ -388,8 +389,8 @@ end # of class YangtseEveningPostToolset
 class WenhuiDailyToolset < NewspaperToolSet
 
 def get_pdfs_webpage_urlstr
-	src_url = "http://wenhui.news365.com.cn/whb/pdf/default.asp"
-	#src_url = "http://pdf.news365.com.cn/whpdf/default.asp"
+	#src_url = "http://wenhui.news365.com.cn/whb/pdf/default.asp"
+	src_url = "http://pdf.news365.com.cn/whpdf/default.asp"
 	return src_url
 end
 
@@ -548,6 +549,10 @@ class App
     def output_version
       puts "#{File.basename(__FILE__)} version #{VERSION}"
     end
+
+    def disk_free_space_in_MB( path )
+	  `df -P #{path} |grep ^/ | awk '{print $4;}'`.to_i * 1 /  1024
+    end
     
     def process_command
 	spec_day =  Date.today  + @options.day_offset
@@ -557,7 +562,12 @@ class App
 	sym_to_toolset_map = { :XM => "XinminNightlyToolset" , :WHB => "WenhuiDailyToolset", :YZ => "YangtseEveningPostToolset" }
 	sym_to_folder_map = { :XM => "xinmin" , :WHB => "wenhui", :YZ => "yangtse" }
 
+	if disk_free_space_in_MB("/home/realalien/newspapers") < 200	
+            puts "Disk quota is too small, please free more space"
+        else
+            puts "Starting ..."
 	@options.newspapers.each do | sym |
+            begin 
 		klass = sym_to_toolset_map.fetch(sym)
 		todaynp = inst = Kernel.const_get(klass).new
 		todaynp.specific_date = spec_day
@@ -565,9 +575,12 @@ class App
 		todaynp.target_dir=File.expand_path(File.join("~", "newspapers", sym_to_folder_map.fetch(sym), todaynp.specific_date.to_s))
 		todaynp.download
 		todaynp.rename
-		todaynp.merge_to_one_pdf
+		todaynp.merge_to_one_pdf 
+            rescue 
+		next
+            end 
 	end
-	
+      end	
       #process_standard_input # [Optional]
     end
 
@@ -584,7 +597,7 @@ app.run
 
 #TODO: log the irregular pages by writing to a file, for later analysis.  need revising.
 #TODO: more user-friendly
-#TODO: interruption handle, e.g. no other process if stop download
+#TODO: interruption handle, e.g. no other process if stop 
 #TODO: Suppress the STDOUT of system(), but with downloading info
 #TODO: Avoid re-download
 #TODO: clock facility and shell script to automated download,  according to the publishing time
