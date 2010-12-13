@@ -7,6 +7,7 @@ begin
 	require 'mechanize'
 rescue
 	puts " Please use 'gem install mechanize' to install the gem!"
+end
 
 SHOW_MAX_IPS  = 5   # how many IP will be displayed sorted by rtt
 GAME_ONLY_IPS = [ "91.207.192.47", "210.175.52.11",
