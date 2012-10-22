@@ -346,7 +346,7 @@ class YangtseEveningPostToolset < NewspaperToolSet
     yr_mth = specific_date.year.to_s + "-" + specific_date.strftime("%m") # e.g. 2008-11
     day = specific_date.strftime('%d') 
     #puts yr_mth # ; puts day
-    url = "http://epaper.yangtse.com/yzwb/"+ yr_mth +"/"+ day + "/node_4109.htm" 
+    url = "http://www.960961.cn/yzwb/images/"+ yr_mth +"/"+ day + "/node_1.htm" 
     return url
   end
   
@@ -564,9 +564,9 @@ class App
     sym_to_toolset_map = { :XM => "XinminNightlyToolset" , :WHB => "WenhuiDailyToolset", :YZ => "YangtseEveningPostToolset" }
     sym_to_folder_map = { :XM => "xinmin" , :WHB => "wenhui", :YZ => "yangtse" }
     
-    if disk_free_space_in_MB("/home/realalien/newspapers") < 200	
-      puts "Disk quota is too small, please free more space"
-    else
+    #if disk_free_space_in_MB("/home/realalien/newspapers") < 200	
+    #  puts "Disk quota is too small, please free more space"
+    #else
       puts "Starting ..."
       @options.newspapers.each do | sym |
         begin 
@@ -583,7 +583,7 @@ class App
           next
         end 
       end
-    end	
+    #end	
     #process_standard_input # [Optional]
   end
   
