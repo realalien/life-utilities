@@ -4,18 +4,16 @@
 ##   A tool for downloading specific newspapers and merge into one file. 
 ##
 ## == Examples
-##   ruby newspaper_in_pdf.rb -1 whb	
+##   ruby newspaper_in_pdf.rb -d-1 -lWHB	
 ## 					#day_offset => -1, newspaper => 'whb'
-##   ruby newspaper_in_pdf.rb xm	
+##   ruby newspaper_in_pdf.rb -lXM	
 ##					# day_offset => 0, newspaper => 'xm'
-##   ruby newspaper_in_pdf.rb xm whb    
+##   ruby newspaper_in_pdf.rb  -lXM,WHB   
 ##					# day_offset => 0, newspaper => ['xm','whb'] 
 ##   ruby newspaper_in_pdf.rb 		
 ##					# day_offset => 0, newspaper => :all
 ##
 ##   Other examples:
-##     ruby newspaper_in_pdf.rb -q   
-##					# day_offset => 0, newspaper => :all 
 ##     ruby --verbose newspaper_in_pdf.rb 
 ##
 ## == Usage 
@@ -27,8 +25,8 @@
 ##   -v, --version       Display the version, then exit
 ##   -q, --quiet         Output as little as possible, overrides verbose
 ##   -V, --verbose       Verbose output
-##   TO DO - add additional options
-##
+##   -l, --list			 Choose the specific newspaper to download, available options ares XM, WHB, YZ
+##   -d, --dayoffset	 The number of day backwards, using negative value
 ## == Author
 ##   Realalien (realalienATgmail.com) 
 ##
@@ -482,7 +480,7 @@ class App
     opts = OptionParser.new do |opts |
       opts.banner = "Usage: ruby newspaper_in_pdf.rb [options]"
       opts.on('-v', '--version')    { output_version ; exit 0 }
-      opts.on('-h', '--help')       { output_help }
+      opts.on('-h', '--help')       { output_help ; exit 0 }
       opts.on('-V', '--verbose')    { @options.verbose = true } 
       opts.on('-q', '--quiet')      { @options.quiet = true }
       
